@@ -1,6 +1,6 @@
 {
-    "name": "@environment-safe/template",
-    "version": "0.0.2",
+    "name": "khipu",
+    "version": "0.0.1",
     "type": "module",
     "main": "dist/index.mjs",
     "module": "src/index.mjs",
@@ -23,17 +23,17 @@
             "require": "./dist/index.cjs"
         }
     },
-    "homepage": "https://github.com/environment-safe/template",
-    "description": "A template for buildless module development",
+    "homepage": "null",
+    "description": "null",
     "keywords": [],
-    "author": "Abbey Hawk Sparrow <@khrome> (http://patternweaver.com)",
+    "author": "null <null>()",
     "contributors": [],
     "repository": {
         "type": "git",
-        "url": "git@github.com:environment-safe/template.git"
+        "url": "null"
     },
     "bugs": {
-        "url": "https://github.com/environment-safe/template/issues"
+        "url": "null"
     },
     "moka": {
         "firefox": {
@@ -54,7 +54,7 @@
                 "type": "webkit"
             }
         },
-        "stub": "src/stub.mjs",
+        "stub": "node_modules/@open-automaton/moka/src/stub.mjs",
         "stubs": [
             "express",
             "module",
