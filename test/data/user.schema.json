@@ -1,0 +1,32 @@
+
+{
+  "$id": "https://example.com/user.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name":"user",
+  "description": "A set of audit fields available on every ",
+  "type": "object",
+  "required": ["handle", "email"],
+  "properties": {
+    "handle": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "fullName": {
+      "type": "string"
+    },
+    "password": {
+      "type": "string"
+    },
+    "birthdate": {
+      "type": "integer"
+    },
+    "location": {
+      "type": "string"
+    },
+    "confirmed": {
+      "type": "boolean"
+    }
+  }
+}

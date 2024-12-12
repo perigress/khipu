@@ -46,7 +46,12 @@ export class Khipu{
     }
     
     buildCreateStatement(schema, objects){
-        
+        return SQL.toSQLInsert(
+            schema.name, 
+            schema,
+            objects,
+            this.options
+        );
     }
     
     buildReadStatement(schema, predicate){

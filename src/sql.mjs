@@ -142,14 +142,14 @@ export const SQL = {
         ){
             oldField = oldTable.fields[oldFieldIndex];
             let found = false;
-            let oldHash = hash(oldField);
+            let oldHash = await hash(oldField);
             for(
                 let newFieldIndex = 0; 
                 newFieldIndex <  newTable.fields.length; 
                 newFieldIndex++
             ){
                 newField = newTable.fields[newFieldIndex];
-                let newHash = hash(newField);
+                let newHash = await hash(newField);
                 if(newHash === oldHash){
                     found = true;
                 }
@@ -164,10 +164,10 @@ export const SQL = {
             ups, downs
         };
     },
-    toSQLInsert : async (name, itms, options)=>{
+    toSQLInsert : async (name, schema, itms, options)=>{
         let items = Array.isArray(itms)?itms:[itms];
         if(!items.length) throw new Error('must have items to create insert');
-        return `INSERT INTO ${name}(${
+        return [`INSERT INTO ${name}(${
             Object.keys(items[0]).join(', ')
         }) VALUES ${
             items.map(
@@ -175,9 +175,9 @@ export const SQL = {
                     key => typeof i[key] === 'string'?'"'+i[key]+'"':i[key]+''
                 ).join(', ')+')'
             ).join(', ')
-        }`;
+        }`];
     },
-    toSQLUpdate : async (name, itms, options)=>{
+    toSQLUpdate : async (name, schema, itms, options)=>{
         let items = Array.isArray(itms)?itms:[itms];
         if(!items.length) throw new Error('must have items to create update');
         /*return `UPDATE ${name}(${
@@ -188,7 +188,7 @@ export const SQL = {
             ).join(', ')+')').join(', ')
         }`*/
     },
-    toSQLRead : async (name, itms, options)=>{
+    toSQLRead : async (name, schema, itms, options)=>{
         let items = Array.isArray(itms)?itms:[itms];
         if(!items.length) throw new Error('must have items to create update');
         /*return `UPDATE ${name}(${
@@ -199,7 +199,7 @@ export const SQL = {
             ).join(', ')+')').join(', ')
         }`*/
     },
-    toSQLDelete : async (name, itms, options)=>{
+    toSQLDelete : async (name, schema, itms, options)=>{
         let items = Array.isArray(itms)?itms:[itms];
         if(!items.length) throw new Error('must have items to create update');
         /*return `UPDATE ${name}(${
