@@ -1,5 +1,5 @@
 {
-    "name": "khipu",
+    "name": "@perigress/khipu",
     "version": "0.0.1",
     "type": "module",
     "main": "dist/index.mjs",
@@ -23,17 +23,17 @@
             "require": "./dist/index.cjs"
         }
     },
-    "homepage": "null",
+    "homepage": "https://github.com/perigress/khipu",
     "description": "null",
     "keywords": [],
-    "author": "null <null>()",
+    "author": "Abbey Hawk Sparrow <@khrome> (http://patternweaver.com)",
     "contributors": [],
     "repository": {
         "type": "git",
-        "url": "null"
+        "url": "git@github.com:perigress/khipu.git"
     },
     "bugs": {
-        "url": "null"
+        "url": "https://github.com/perigress/khipu/issues"
     },
     "moka": {
         "firefox": {
@@ -86,7 +86,7 @@
     "scripts": {
         "lint": "eslint src/*.mjs test/*.mjs",
         "test": "npm run import-test; npm run browser-test; npm run require-test",
-        "import-test": "mocha test/test.mjs",
+        "import-test": "moka test/test.mjs",
         "require-test": "mocha test/test.cjs",
         "build-commonjs": "./node_modules/@environment-safe/commonjs-builder/bin/build.mjs",
         "local-server": "open 'http://localhost:8085/' ; npx http-server -p 8085",
@@ -102,6 +102,7 @@
         "prepare": "husky install"
     },
     "dependencies": {
+        "@environment-safe/object-hash": "^0.0.1",
         "browser-or-node": "^2.1.1"
     }
 }

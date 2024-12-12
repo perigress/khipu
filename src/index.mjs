@@ -11,3 +11,53 @@ const ensureRequire = ()=> (!internalRequire) && (internalRequire = mod.createRe
  * A JSON object
  * @typedef { object } JSON
  */
+ 
+import { SQL } from './sql.mjs';
+
+export class Khipu{
+    constructor(options={}){
+        this.options = options;
+        if(!this.options.returnType) this.options.returnType = 'sql:string';
+        const parts = this.options.returnType.split(':');
+        this.mode = parts[0] || 'sql';
+        this.output = parts[1] || 'string';
+    }
+    
+    buildInitializationStatement(schema){
+        let query = null;
+        //todo: work out escaping in functional mode
+        if(this.mode === 'sql'){
+            query = SQL.toSQL(schema.name, schema, this.options);
+        }
+        
+        if(this.output === 'string'){
+            return query;
+        }
+        
+    }
+    
+    buildMigrationStatement(currentSchema, previousSchema){
+        return SQL.toSQLUpdates(
+            currentSchema.name, 
+            currentSchema, 
+            previousSchema, 
+            this.options
+        );
+    }
+    
+    buildCreateStatement(schema, objects){
+        
+    }
+    
+    buildReadStatement(schema, predicate){
+        
+    }
+    
+    buildUpdateStatement(schema, objects){
+        
+    }
+    
+    buildDeleteStatement(schema, objectsOrIds){
+        
+    }
+}

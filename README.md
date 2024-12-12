@@ -1,9 +1,11 @@
 khipu
-============================
-null
+=====
+khipu is a utility for turning sets of json and json schema into SQL and MongoQueryDocuments, named for [khipu](https://en.wikipedia.org/wiki/Quipu) a record keeping technique in the Incan empire
 
 Usage
 -----
+
+import { Khipu } from '@perigress/khipu';
 
 Testing
 -------
