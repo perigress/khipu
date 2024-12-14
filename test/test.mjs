@@ -39,6 +39,23 @@ describe('@perigress/khipu', ()=>{
             );
             statements[0].should.equal(exampleAtNow);
         });
+        
+        it('generates a data update statement', async ()=>{
+            should.exist(Khipu);
+            const data = await getUserSchema();
+            const queryBuilder = new Khipu({output: 'SQL'});
+            const mutated = JSON.parse(JSON.stringify(examples));
+            mutated[0].id = 83792374;
+            mutated[0].handle = 'foo';
+            mutated[1].id = 409494642;
+            mutated[1].handle = 'bar';
+            const statements = await queryBuilder.buildUpdateStatement(data, mutated);
+            const now = statements[0].match(/[0-9]{13}/g)[0];
+            examplesUpdate[0] = examplesUpdate[0].replace( /[0-9]{13}/g, now );
+            examplesUpdate[1] = examplesUpdate[1].replace( /[0-9]{13}/g, now );
+            statements[0].should.equal(examplesUpdate[0]);
+            statements[1].should.equal(examplesUpdate[1]);
+        });
     });
 });
 
@@ -92,4 +109,11 @@ const examples = [
 ];
 
 const examplesInsert = 'INSERT INTO user(handle, email, fullName, password, birthdate) VALUES ("edbeggler", "foo@bar.com", "Ed Beggler", "frdfnskjfn", 1734019311636), ("cheetah", "khrome@ix.netcom.com", "Vince Vega", "1234567890", 1734019311636)';
+
+//*
+const examplesUpdate = [
+    'UPDATE user SET handle = "foo", email = "foo@bar.com", fullName = "Ed Beggler", password = "frdfnskjfn", birthdate = 1734133610091 WHERE id = 83792374',
+    'UPDATE user SET handle = "bar", email = "khrome@ix.netcom.com", fullName = "Vince Vega", password = "1234567890", birthdate = 1734133610091 WHERE id = 409494642'
+];
+//*/
 

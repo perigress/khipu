@@ -44,7 +44,9 @@ class Khipu {
     return _sql.SQL.toSQLInsert(schema.name, schema, objects, this.options);
   }
   buildReadStatement(schema, predicate) {}
-  buildUpdateStatement(schema, objects) {}
+  buildUpdateStatement(schema, objects) {
+    return _sql.SQL.toSQLUpdate(schema.name, schema, objects, this.options);
+  }
   buildDeleteStatement(schema, objectsOrIds) {}
 }
 exports.Khipu = Khipu;

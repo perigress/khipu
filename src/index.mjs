@@ -59,7 +59,12 @@ export class Khipu{
     }
     
     buildUpdateStatement(schema, objects){
-        
+        return SQL.toSQLUpdate(
+            schema.name, 
+            schema,
+            objects,
+            this.options
+        );
     }
     
     buildDeleteStatement(schema, objectsOrIds){

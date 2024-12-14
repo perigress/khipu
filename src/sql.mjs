@@ -12,6 +12,15 @@ const sqlType = (jsonType, pattern, opts)=>{
     }
 };
 
+const literalValue = (value, escape)=>{
+    switch(typeof value){
+        case 'number' : return value.toString();
+        case 'string' : return `"${escape?escape(value):value}"`;
+        case 'boolean' : return value.toString();
+        default : return value.toString();
+    }
+};
+
 const fieldSQL = (f)=>{
     let field = f || {};
     return `${field.name} ${ field.sqlType }${(field.canBeNull?'':' NOT NULL')}`;
@@ -179,18 +188,31 @@ export const SQL = {
     },
     toSQLUpdate : async (name, schema, itms, options)=>{
         let items = Array.isArray(itms)?itms:[itms];
+        let idField = options.id || options.identifier || 'id';
         if(!items.length) throw new Error('must have items to create update');
-        /*return `UPDATE ${name}(${
-            Object.keys(items[0]).join(', ')
-        }) VALUES ${
-            items.map(
-                i=>'('+Object.keys(i).map(key => typeof i[key] === 'string'?'"'+i[key]+'"':i[key]+''
-            ).join(', ')+')').join(', ')
-        }`*/
+        const results = [];
+        let item = null;
+        let nonIdKeys = null;
+        let sql = null;
+        for(let lcv=0; lcv < items.length; lcv++){
+            item = items[lcv];
+            nonIdKeys = Object.keys(item).filter((key)=> key !== idField);
+            sql = `UPDATE ${ name } SET ${
+                nonIdKeys.map((key)=>{
+                    return `${key} = ${
+                        literalValue(item[key], options.escape)
+                    }`;
+                }).join(', ')
+            } WHERE ${idField} = ${
+                literalValue(item[idField], options.escape)
+            }`;
+            results.push(sql);
+        }
+        return results;
     },
-    toSQLRead : async (name, schema, itms, options)=>{
-        let items = Array.isArray(itms)?itms:[itms];
-        if(!items.length) throw new Error('must have items to create update');
+    toSQLRead : async (name, schema, query, options)=>{
+        //let items = Array.isArray(itms)?itms:[itms];
+        //if(!items.length) throw new Error('must have items to create update');
         /*return `UPDATE ${name}(${
             Object.keys(items[0]).join(', ')
         }) VALUES ${
