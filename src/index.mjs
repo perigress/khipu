@@ -55,7 +55,12 @@ export class Khipu{
     }
     
     buildReadStatement(schema, predicate){
-        
+        return SQL.toSQLRead(
+            schema.name, 
+            schema,
+            predicate,
+            this.options
+        );
     }
     
     buildUpdateStatement(schema, objects){

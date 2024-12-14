@@ -28,7 +28,7 @@ describe('@perigress/khipu', ()=>{
             migration.downs.should.deep.equal(expectedMigration.downs);
         });
         
-        it('generates a data insert statement', async ()=>{
+        it('generates a data create (insert) statement', async ()=>{
             should.exist(Khipu);
             const data = await getUserSchema();
             const queryBuilder = new Khipu({output: 'SQL'});
@@ -38,6 +38,17 @@ describe('@perigress/khipu', ()=>{
                 /[0-9]{13}/g, now
             );
             statements[0].should.equal(exampleAtNow);
+        });
+        
+        it('generates a read statement', async ()=>{
+            should.exist(Khipu);
+            const data = await getUserSchema();
+            const queryBuilder = new Khipu({output: 'SQL'});
+            const statements = await queryBuilder.buildReadStatement(data, {
+                time: {$gt: (new Date(2015, 1, 1)).getTime() },
+                handle: {$eq: 'alibaba' }
+            });
+            statements[0].should.equal(examplesRead);
         });
         
         it('generates a data update statement', async ()=>{
@@ -127,5 +138,6 @@ const examplesUpdate = [
     'UPDATE user SET handle = "bar", email = "khrome@ix.netcom.com", fullName = "Vince Vega", password = "1234567890", birthdate = 1734133610091 WHERE id = 409494642'
 ];
 const examplesDelete = 'DELETE FROM user WHERE id IN (83792374, 409494642)';
+const examplesRead = 'SELECT handle, email, fullName, password, birthdate, location, confirmed FROM user WHERE time > 1422774000000 AND handle == "alibaba"';
 //*/
 

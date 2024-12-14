@@ -33,6 +33,48 @@ const literalValue = (value, escape) => {
       return value.toString();
   }
 };
+const queryDocumentPredicateToSQLPredicate = (query, options = {}) => {
+  if (query['$or']) {
+    return query['$or'].map(phrase => {
+      return queryDocumentPredicateToSQLPredicate(phrase);
+    }).join(' OR ');
+  }
+  const fields = Object.keys(query);
+  let field = null;
+  const phrases = [];
+  for (let lcv = 0; lcv < fields.length; lcv++) {
+    field = fields[lcv];
+    const keys = Object.keys(query[field]);
+    keys.map(key => {
+      switch (key) {
+        case '$in':
+          phrases.push(`${field} IN ( ${query[field][key].map(value => {
+            literalValue(value, options.escape);
+          })} )`);
+          break;
+        case '$eq':
+          phrases.push(`${field} == ${literalValue(query[field][key], options.escape)}`);
+          break;
+        case '$ne':
+          phrases.push(`${field} <> ${literalValue(query[field][key], options.escape)}`);
+          break;
+        case '$gt':
+          phrases.push(`${field} > ${literalValue(query[field][key], options.escape)}`);
+          break;
+        case '$lt':
+          phrases.push(`${field} < ${literalValue(query[field][key], options.escape)}`);
+          break;
+        case '$gte':
+          phrases.push(`${field} >= ${literalValue(query[field][key], options.escape)}`);
+          break;
+        case '$lte':
+          phrases.push(`${field} <= ${literalValue(query[field][key], options.escape)}`);
+          break;
+      }
+    });
+  }
+  return phrases.join(' AND ');
+};
 const fieldSQL = f => {
   let field = f || {};
   return `${field.name} ${field.sqlType}${field.canBeNull ? '' : ' NOT NULL'}`;
@@ -142,7 +184,7 @@ const SQL = exports.SQL = {
   toSQLInsert: async (name, schema, itms, options) => {
     let items = Array.isArray(itms) ? itms : [itms];
     if (!items.length) throw new Error('must have items to create insert');
-    return [`INSERT INTO ${name}(${Object.keys(items[0]).join(', ')}) VALUES ${items.map(i => '(' + Object.keys(i).map(key => typeof i[key] === 'string' ? '"' + i[key] + '"' : i[key] + '').join(', ') + ')').join(', ')}`];
+    return [`INSERT INTO ${name}(${Object.keys(items[0]).join(', ')}) VALUES ${items.map(i => '(' + Object.keys(i).map(key => literalValue(i[key], options.escape)).join(', ') + ')').join(', ')}`];
   },
   toSQLUpdate: async (name, schema, itms, options) => {
     let items = Array.isArray(itms) ? itms : [itms];
@@ -163,16 +205,10 @@ const SQL = exports.SQL = {
     return results;
   },
   toSQLRead: async (name, schema, query, options) => {
-
-    //let items = Array.isArray(itms)?itms:[itms];
-    //if(!items.length) throw new Error('must have items to create update');
-    /*return `UPDATE ${name}(${
-        Object.keys(items[0]).join(', ')
-    }) VALUES ${
-        items.map(
-            i=>'('+Object.keys(i).map(key => typeof i[key] === 'string'?'"'+i[key]+'"':i[key]+''
-        ).join(', ')+')').join(', ')
-    }`*/
+    const sql = `SELECT ${Object.keys(schema.properties).map(key => {
+      return key;
+    }).join(', ')} FROM ${name} WHERE ${queryDocumentPredicateToSQLPredicate(query)}`;
+    return [sql];
   },
   toSQLDelete: async (name, schema, itms, options) => {
     let items = Array.isArray(itms) ? itms : [itms];
@@ -181,7 +217,9 @@ const SQL = exports.SQL = {
     const ids = typeof items[0] === 'object' ? items.map(item => {
       return item[idField];
     }) : items;
-    return [`DELETE FROM ${name} WHERE ${idField} IN (${ids.join(', ')})`];
+    return [`DELETE FROM ${name} WHERE ${idField} IN (${ids.map(v => {
+      return literalValue(v, options.escape);
+    }).join(', ')})`];
   },
   wrapExecution: () => {}
 };
