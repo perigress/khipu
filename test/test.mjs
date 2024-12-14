@@ -56,6 +56,17 @@ describe('@perigress/khipu', ()=>{
             statements[0].should.equal(examplesUpdate[0]);
             statements[1].should.equal(examplesUpdate[1]);
         });
+        
+        it('generates a delete statement', async ()=>{
+            should.exist(Khipu);
+            const data = await getUserSchema();
+            const queryBuilder = new Khipu({output: 'SQL'});
+            const mutated = JSON.parse(JSON.stringify(examples));
+            mutated[0].id = 83792374;
+            mutated[1].id = 409494642;
+            const statements = await queryBuilder.buildDeleteStatement(data, mutated);
+            statements[0].should.equal(examplesDelete);
+        });
     });
 });
 
@@ -115,5 +126,6 @@ const examplesUpdate = [
     'UPDATE user SET handle = "foo", email = "foo@bar.com", fullName = "Ed Beggler", password = "frdfnskjfn", birthdate = 1734133610091 WHERE id = 83792374',
     'UPDATE user SET handle = "bar", email = "khrome@ix.netcom.com", fullName = "Vince Vega", password = "1234567890", birthdate = 1734133610091 WHERE id = 409494642'
 ];
+const examplesDelete = 'DELETE FROM user WHERE id IN (83792374, 409494642)';
 //*/
 

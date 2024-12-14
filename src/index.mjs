@@ -68,6 +68,11 @@ export class Khipu{
     }
     
     buildDeleteStatement(schema, objectsOrIds){
-        
+        return SQL.toSQLDelete(
+            schema.name, 
+            schema,
+            objectsOrIds,
+            this.options
+        );
     }
 }

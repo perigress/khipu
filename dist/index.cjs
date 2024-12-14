@@ -47,6 +47,8 @@ class Khipu {
   buildUpdateStatement(schema, objects) {
     return _sql.SQL.toSQLUpdate(schema.name, schema, objects, this.options);
   }
-  buildDeleteStatement(schema, objectsOrIds) {}
+  buildDeleteStatement(schema, objectsOrIds) {
+    return _sql.SQL.toSQLDelete(schema.name, schema, objectsOrIds, this.options);
+  }
 }
 exports.Khipu = Khipu;

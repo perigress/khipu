@@ -211,6 +211,7 @@ export const SQL = {
         return results;
     },
     toSQLRead : async (name, schema, query, options)=>{
+        
         //let items = Array.isArray(itms)?itms:[itms];
         //if(!items.length) throw new Error('must have items to create update');
         /*return `UPDATE ${name}(${
@@ -223,14 +224,12 @@ export const SQL = {
     },
     toSQLDelete : async (name, schema, itms, options)=>{
         let items = Array.isArray(itms)?itms:[itms];
+        let idField = options.id || options.identifier || 'id';
         if(!items.length) throw new Error('must have items to create update');
-        /*return `UPDATE ${name}(${
-            Object.keys(items[0]).join(', ')
-        }) VALUES ${
-            items.map(
-                i=>'('+Object.keys(i).map(key => typeof i[key] === 'string'?'"'+i[key]+'"':i[key]+''
-            ).join(', ')+')').join(', ')
-        }`*/
+        const ids = typeof items[0] === 'object'?items.map((item)=>{
+            return item[idField];
+        }):items;
+        return [`DELETE FROM ${name} WHERE ${idField} IN (${ ids.join(', ') })`];
     },
     
     wrapExecution : ()=>{
