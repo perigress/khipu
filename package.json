@@ -30,7 +30,7 @@
     "contributors": [],
     "repository": {
         "type": "git",
-        "url": "git@github.com:perigress/khipu.git"
+        "url": "git+ssh://git@github.com/perigress/khipu.git"
     },
     "bugs": {
         "url": "https://github.com/perigress/khipu/issues"
