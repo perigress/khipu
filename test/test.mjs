@@ -33,11 +33,11 @@ describe('@perigress/khipu', ()=>{
             const data = await getUserSchema();
             const queryBuilder = new Khipu({output: 'SQL'});
             const statements = await queryBuilder.buildCreateStatement(data, examples);
-            const now = statements[0].match(/[0-9]{13}/g)[0];
+            const now = statements[0].sql.match(/[0-9]{13}/g)[0];
             const exampleAtNow = examplesInsert.replace(
                 /[0-9]{13}/g, now
             );
-            statements[0].should.equal(exampleAtNow);
+            statements[0].sql.should.equal(exampleAtNow);
         });
         
         it('generates a read statement', async ()=>{
@@ -48,7 +48,7 @@ describe('@perigress/khipu', ()=>{
                 time: {$gt: (new Date(2015, 1, 1)).getTime() },
                 handle: {$eq: 'alibaba' }
             });
-            statements[0].should.equal(examplesRead);
+            statements[0].sql.should.equal(examplesRead);
         });
         
         it('generates a data update statement', async ()=>{
@@ -61,11 +61,11 @@ describe('@perigress/khipu', ()=>{
             mutated[1].id = 409494642;
             mutated[1].handle = 'bar';
             const statements = await queryBuilder.buildUpdateStatement(data, mutated);
-            const now = statements[0].match(/[0-9]{13}/g)[0];
+            const now = statements[0].sql.match(/[0-9]{13}/g)[0];
             examplesUpdate[0] = examplesUpdate[0].replace( /[0-9]{13}/g, now );
             examplesUpdate[1] = examplesUpdate[1].replace( /[0-9]{13}/g, now );
-            statements[0].should.equal(examplesUpdate[0]);
-            statements[1].should.equal(examplesUpdate[1]);
+            statements[0].sql.should.equal(examplesUpdate[0]);
+            statements[1].sql.should.equal(examplesUpdate[1]);
         });
         
         it('generates a delete statement', async ()=>{
@@ -76,7 +76,7 @@ describe('@perigress/khipu', ()=>{
             mutated[0].id = 83792374;
             mutated[1].id = 409494642;
             const statements = await queryBuilder.buildDeleteStatement(data, mutated);
-            statements[0].should.equal(examplesDelete);
+            statements[0].sql.should.equal(examplesDelete);
         });
     });
 });

@@ -21,6 +21,19 @@ const sqlType = (jsonType, pattern, opts) => {
       throw new Error('Unknown type: ' + jsonType);
   }
 };
+
+/*const preparedType = (jsonType, pattern, opts)=>{
+    switch(jsonType){
+        case 'string': return 'text';
+        case 'number': return 'FLOAT(24)';
+        //case 'object': return 'varchar(255)'; //currently unsupported
+        case 'integer': return 'INTEGER';
+        //case 'array': return 'varchar(255)'; //currently unsupported
+        case 'boolean': return 'BOOLEAN';
+        default: throw new Error('Unknown type: '+jsonType);
+    }
+};*/
+
 const literalValue = (value, escape) => {
   switch (typeof value) {
     case 'number':
@@ -184,7 +197,35 @@ const SQL = exports.SQL = {
   toSQLInsert: async (name, schema, itms, options) => {
     let items = Array.isArray(itms) ? itms : [itms];
     if (!items.length) throw new Error('must have items to create insert');
-    return [`INSERT INTO ${name}(${Object.keys(items[0]).join(', ')}) VALUES ${items.map(i => '(' + Object.keys(i).map(key => literalValue(i[key], options.escape)).join(', ') + ')').join(', ')}`];
+    if (options.prepared) {
+      let keys = null;
+      const subs = items.map(item => {
+        const map = {};
+        keys = Object.keys(item);
+        for (let lcv = 0; lcv < keys.length; lcv++) {
+          map[keys[lcv]] = `$${lcv}`;
+        }
+        return map;
+      });
+      const values = [];
+      const sql = `INSERT INTO "${name}"(${Object.keys(items[0]).join(', ')}) VALUES ${subs.map((i, index) => {
+        return '(' + Object.keys(i).map(key => {
+          values.push(items[index][key]);
+          return i[key];
+        }).join(', ') + ')';
+      }).join(', ')}`;
+      const wrap = {
+        sql,
+        values,
+        toString: () => sql
+      };
+      return [wrap];
+    }
+    const sql = `INSERT INTO ${name}(${Object.keys(items[0]).join(', ')}) VALUES ${items.map(i => '(' + Object.keys(i).map(key => literalValue(i[key], options.escape)).join(', ') + ')').join(', ')}`;
+    return [{
+      sql,
+      toString: () => sql
+    }];
   },
   toSQLUpdate: async (name, schema, itms, options) => {
     let items = Array.isArray(itms) ? itms : [itms];
@@ -194,21 +235,54 @@ const SQL = exports.SQL = {
     let item = null;
     let nonIdKeys = null;
     let sql = null;
-    for (let lcv = 0; lcv < items.length; lcv++) {
-      item = items[lcv];
-      nonIdKeys = Object.keys(item).filter(key => key !== idField);
-      sql = `UPDATE ${name} SET ${nonIdKeys.map(key => {
-        return `${key} = ${literalValue(item[key], options.escape)}`;
-      }).join(', ')} WHERE ${idField} = ${literalValue(item[idField], options.escape)}`;
-      results.push(sql);
+    if (options.prepared) {
+      let values = null;
+      /*const subs = items.map((item)=>{
+          const map = {};
+          keys = Object.keys(item);
+          for(let lcv=0; lcv < keys.length; lcv++){
+              map[keys[lcv]] = `$${lcv}`;
+          }
+          return map;
+      });*/
+      for (let lcv = 0; lcv < items.length; lcv++) {
+        item = items[lcv];
+        values = [];
+        nonIdKeys = Object.keys(item).filter(key => key !== idField);
+        sql = `UPDATE ${name} SET ${nonIdKeys.map((key, index) => {
+          values.push(literalValue(item[key], options.escape));
+          return `${key} = $${index}`;
+        }).join(', ')} WHERE ${idField} = ${literalValue(item[idField], options.escape)}`;
+        results.push({
+          sql,
+          values,
+          toString: () => sql
+        });
+      }
+      return results;
+    } else {
+      for (let lcv = 0; lcv < items.length; lcv++) {
+        item = items[lcv];
+        nonIdKeys = Object.keys(item).filter(key => key !== idField);
+        sql = `UPDATE ${name} SET ${nonIdKeys.map(key => {
+          return `${key} = ${literalValue(item[key], options.escape)}`;
+        }).join(', ')} WHERE ${idField} = ${literalValue(item[idField], options.escape)}`;
+        results.push({
+          sql,
+          toString: () => sql
+        });
+      }
+      return results;
     }
-    return results;
   },
   toSQLRead: async (name, schema, query, options) => {
     const sql = `SELECT ${Object.keys(schema.properties).map(key => {
       return key;
     }).join(', ')} FROM ${name} WHERE ${queryDocumentPredicateToSQLPredicate(query)}`;
-    return [sql];
+    return [{
+      sql: sql,
+      toString: () => [sql]
+    }];
   },
   toSQLDelete: async (name, schema, itms, options) => {
     let items = Array.isArray(itms) ? itms : [itms];
@@ -217,9 +291,11 @@ const SQL = exports.SQL = {
     const ids = typeof items[0] === 'object' ? items.map(item => {
       return item[idField];
     }) : items;
-    return [`DELETE FROM ${name} WHERE ${idField} IN (${ids.map(v => {
-      return literalValue(v, options.escape);
-    }).join(', ')})`];
+    return [{
+      sql: `DELETE FROM ${name} WHERE ${idField} IN (${ids.map(v => {
+        return literalValue(v, options.escape);
+      }).join(', ')})`
+    }];
   },
   wrapExecution: () => {}
 };
