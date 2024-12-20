@@ -138,6 +138,7 @@ const examplesUpdate = [
     'UPDATE user SET handle = "bar", email = "khrome@ix.netcom.com", fullName = "Vince Vega", password = "1234567890", birthdate = 1734133610091 WHERE id = 409494642'
 ];
 const examplesDelete = 'DELETE FROM user WHERE id IN (83792374, 409494642)';
-const examplesRead = 'SELECT handle, email, fullName, password, birthdate, location, confirmed FROM user WHERE time > 1422774000000 AND handle == "alibaba"';
+const examplesRead = 'SELECT * FROM "user" WHERE time > 1422774000000 AND handle = "alibaba"';
+//const examplesRead = 'SELECT handle, email, fullName, password, birthdate, location, confirmed FROM user WHERE time > 1422774000000 AND handle == "alibaba"';
 //*/
 

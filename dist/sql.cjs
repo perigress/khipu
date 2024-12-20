@@ -46,6 +46,14 @@ const literalValue = (value, escape) => {
       return value.toString();
   }
 };
+const printValue = (value, isEscaped, isPrepared, index, values) => {
+  if (isPrepared) {
+    values.push(value);
+    return `$${index + 1}`;
+  } else {
+    return literalValue(value, isEscaped);
+  }
+};
 const queryDocumentPredicateToSQLPredicate = (query, options = {}) => {
   if (query['$or']) {
     return query['$or'].map(phrase => {
@@ -55,6 +63,8 @@ const queryDocumentPredicateToSQLPredicate = (query, options = {}) => {
   const fields = Object.keys(query);
   let field = null;
   const phrases = [];
+  const values = [];
+  let index = 0;
   for (let lcv = 0; lcv < fields.length; lcv++) {
     field = fields[lcv];
     const keys = Object.keys(query[field]);
@@ -62,31 +72,43 @@ const queryDocumentPredicateToSQLPredicate = (query, options = {}) => {
       switch (key) {
         case '$in':
           phrases.push(`${field} IN ( ${query[field][key].map(value => {
-            literalValue(value, options.escape);
+            printValue(value, options.escape, options.prepared, index, values);
+            index++;
           })} )`);
           break;
         case '$eq':
-          phrases.push(`${field} == ${literalValue(query[field][key], options.escape)}`);
+          phrases.push(`${field} = ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          index++;
           break;
         case '$ne':
-          phrases.push(`${field} <> ${literalValue(query[field][key], options.escape)}`);
+          phrases.push(`${field} <> ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          index++;
           break;
         case '$gt':
-          phrases.push(`${field} > ${literalValue(query[field][key], options.escape)}`);
+          phrases.push(`${field} > ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          index++;
           break;
         case '$lt':
-          phrases.push(`${field} < ${literalValue(query[field][key], options.escape)}`);
+          phrases.push(`${field} < ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          index++;
           break;
         case '$gte':
-          phrases.push(`${field} >= ${literalValue(query[field][key], options.escape)}`);
+          phrases.push(`${field} >= ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          index++;
           break;
         case '$lte':
-          phrases.push(`${field} <= ${literalValue(query[field][key], options.escape)}`);
+          phrases.push(`${field} <= ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          index++;
           break;
       }
     });
   }
-  return phrases.join(' AND ');
+  const predicate = phrases.join(' AND ');
+  return {
+    predicate,
+    values,
+    toString: () => predicate
+  };
 };
 const fieldSQL = f => {
   let field = f || {};
@@ -203,7 +225,7 @@ const SQL = exports.SQL = {
         const map = {};
         keys = Object.keys(item);
         for (let lcv = 0; lcv < keys.length; lcv++) {
-          map[keys[lcv]] = `$${lcv}`;
+          map[keys[lcv]] = `$${lcv + 1}`;
         }
         return map;
       });
@@ -251,7 +273,7 @@ const SQL = exports.SQL = {
         nonIdKeys = Object.keys(item).filter(key => key !== idField);
         sql = `UPDATE ${name} SET ${nonIdKeys.map((key, index) => {
           values.push(literalValue(item[key], options.escape));
-          return `${key} = $${index}`;
+          return `${key} = $${index + 1}`;
         }).join(', ')} WHERE ${idField} = ${literalValue(item[idField], options.escape)}`;
         results.push({
           sql,
@@ -276,11 +298,15 @@ const SQL = exports.SQL = {
     }
   },
   toSQLRead: async (name, schema, query, options) => {
-    const sql = `SELECT ${Object.keys(schema.properties).map(key => {
-      return key;
-    }).join(', ')} FROM ${name} WHERE ${queryDocumentPredicateToSQLPredicate(query)}`;
+    const statement = queryDocumentPredicateToSQLPredicate(query, options);
+    const sql = `SELECT ${'*'
+    /*Object.keys(schema.properties).map((key)=>{
+        return `"${name}.${key}"`;
+    }).join(', ')
+    */} FROM "${name}" WHERE ${statement.predicate}`;
     return [{
       sql: sql,
+      values: statement.values,
       toString: () => [sql]
     }];
   },
