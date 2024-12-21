@@ -5,6 +5,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.SQL = void 0;
 var _objectHash = require("@environment-safe/object-hash");
+//TODO: SQL should be divided by engine and standard vs prepared
+
 const sqlType = (jsonType, pattern, opts) => {
   switch (jsonType) {
     case 'string':
@@ -34,7 +36,7 @@ const sqlType = (jsonType, pattern, opts) => {
     }
 };*/
 
-const literalValue = (value, escape) => {
+const literalValue = (value, escape, field) => {
   switch (typeof value) {
     case 'number':
       return value.toString();
@@ -46,15 +48,18 @@ const literalValue = (value, escape) => {
       return value.toString();
   }
 };
-const printValue = (value, isEscaped, isPrepared, index, values) => {
+const printValue = (value, isEscaped, isPrepared, index, values, field) => {
+  if (field && field.generate && field.format === 'uuid' && !value) {
+    return 'gen_random_uuid()';
+  }
   if (isPrepared) {
     values.push(value);
     return `$${index + 1}`;
   } else {
-    return literalValue(value, isEscaped);
+    return literalValue(value, isEscaped, field);
   }
 };
-const queryDocumentPredicateToSQLPredicate = (query, options = {}) => {
+const queryDocumentPredicateToSQLPredicate = (query, options = {}, definition) => {
   if (query['$or']) {
     return query['$or'].map(phrase => {
       return queryDocumentPredicateToSQLPredicate(phrase);
@@ -68,36 +73,37 @@ const queryDocumentPredicateToSQLPredicate = (query, options = {}) => {
   for (let lcv = 0; lcv < fields.length; lcv++) {
     field = fields[lcv];
     const keys = Object.keys(query[field]);
+    const fieldDefinition = definition.properties[field];
     keys.map(key => {
       switch (key) {
         case '$in':
           phrases.push(`${field} IN ( ${query[field][key].map(value => {
-            printValue(value, options.escape, options.prepared, index, values);
+            printValue(value, options.escape, options.prepared, index, values, fieldDefinition);
             index++;
           })} )`);
           break;
         case '$eq':
-          phrases.push(`${field} = ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          phrases.push(`${field} = ${printValue(query[field][key], options.escape, options.prepared, index, values, fieldDefinition)}`);
           index++;
           break;
         case '$ne':
-          phrases.push(`${field} <> ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          phrases.push(`${field} <> ${printValue(query[field][key], options.escape, options.prepared, index, values, fieldDefinition)}`);
           index++;
           break;
         case '$gt':
-          phrases.push(`${field} > ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          phrases.push(`${field} > ${printValue(query[field][key], options.escape, options.prepared, index, values, fieldDefinition)}`);
           index++;
           break;
         case '$lt':
-          phrases.push(`${field} < ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          phrases.push(`${field} < ${printValue(query[field][key], options.escape, options.prepared, index, values, fieldDefinition)}`);
           index++;
           break;
         case '$gte':
-          phrases.push(`${field} >= ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          phrases.push(`${field} >= ${printValue(query[field][key], options.escape, options.prepared, index, values, fieldDefinition)}`);
           index++;
           break;
         case '$lte':
-          phrases.push(`${field} <= ${printValue(query[field][key], options.escape, options.prepared, index, values)}`);
+          phrases.push(`${field} <= ${printValue(query[field][key], options.escape, options.prepared, index, values, fieldDefinition)}`);
           index++;
           break;
       }
@@ -220,22 +226,37 @@ const SQL = exports.SQL = {
     let items = Array.isArray(itms) ? itms : [itms];
     if (!items.length) throw new Error('must have items to create insert');
     if (options.prepared) {
-      let keys = null;
-      const subs = items.map(item => {
-        const map = {};
-        keys = Object.keys(item);
-        for (let lcv = 0; lcv < keys.length; lcv++) {
-          map[keys[lcv]] = `$${lcv + 1}`;
-        }
-        return map;
-      });
+      /*const subs = items.map((item)=>{
+          const map = {};
+          let index = 0;
+          //keys = Object.keys(item);
+          keys = Object.keys(schema.properties);
+          for(let lcv=0; lcv < keys.length; lcv++){
+              if(item[keys[lcv]]){
+                  map[keys[lcv]] = `$${(index++)+1}`;
+              }
+          }
+          return map;
+      });*/
       const values = [];
-      const sql = `INSERT INTO "${name}"(${Object.keys(items[0]).join(', ')}) VALUES ${subs.map((i, index) => {
-        return '(' + Object.keys(i).map(key => {
-          values.push(items[index][key]);
-          return i[key];
-        }).join(', ') + ')';
-      }).join(', ')}`;
+      const keys = [];
+      const valueLines = items.map((i, index) => {
+        return '(' + Object.keys(schema.properties).reduce((results, key) => {
+          const field = schema.properties[key];
+          if (field.generate && field.format === 'uuid' && !i[key]) {
+            keys.push(key);
+            results.push('gen_random_uuid()');
+          } else {
+            if (i[key]) {
+              keys.push(key);
+              values.push(i[key]);
+              results.push('$' + values.length);
+            }
+          }
+          return results;
+        }, []).join(', ') + ')';
+      });
+      const sql = `INSERT INTO "${name}"(${keys.map(k => `"${k}"`).join(', ')}) VALUES ${valueLines.join(', ')}`;
       const wrap = {
         sql,
         values,
@@ -259,14 +280,6 @@ const SQL = exports.SQL = {
     let sql = null;
     if (options.prepared) {
       let values = null;
-      /*const subs = items.map((item)=>{
-          const map = {};
-          keys = Object.keys(item);
-          for(let lcv=0; lcv < keys.length; lcv++){
-              map[keys[lcv]] = `$${lcv}`;
-          }
-          return map;
-      });*/
       for (let lcv = 0; lcv < items.length; lcv++) {
         item = items[lcv];
         values = [];
@@ -298,7 +311,7 @@ const SQL = exports.SQL = {
     }
   },
   toSQLRead: async (name, schema, query, options) => {
-    const statement = queryDocumentPredicateToSQLPredicate(query, options);
+    const statement = queryDocumentPredicateToSQLPredicate(query, options, schema);
     const sql = `SELECT ${'*'
     /*Object.keys(schema.properties).map((key)=>{
         return `"${name}.${key}"`;
@@ -317,11 +330,24 @@ const SQL = exports.SQL = {
     const ids = typeof items[0] === 'object' ? items.map(item => {
       return item[idField];
     }) : items;
-    return [{
-      sql: `DELETE FROM ${name} WHERE ${idField} IN (${ids.map(v => {
-        return literalValue(v, options.escape);
-      }).join(', ')})`
-    }];
+    if (options.prepared) {
+      const values = [];
+      const sql = `DELETE FROM ${name} WHERE ${idField} IN (${ids.map((v, i) => {
+        values.push(v);
+        return `$${i + 1}`;
+      }).join(', ')})`;
+      return [{
+        sql,
+        values,
+        toString: () => sql
+      }];
+    } else {
+      return [{
+        sql: `DELETE FROM ${name} WHERE ${idField} IN (${ids.map(v => {
+          return literalValue(v, options.escape);
+        }).join(', ')})`
+      }];
+    }
   },
   wrapExecution: () => {}
 };
