@@ -95,7 +95,7 @@ const expected = `CREATE TABLE "user"(
     "email" VARCHAR(255) NOT NULL,
     "fullName" VARCHAR(255),
     "password" VARCHAR(255),
-    "birthdate" INTEGER,
+    "birthdate" BIGINT,
     "location" VARCHAR(255),
     "confirmed" BOOLEAN
 )`;
@@ -103,7 +103,7 @@ const expected = `CREATE TABLE "user"(
 const expectedMigration = {
     ups: [
         'ALTER TABLE user ADD givenName VARCHAR(255)',
-        'ALTER TABLE user ADD counter INTEGER',
+        'ALTER TABLE user ADD counter BIGINT',
         'ALTER TABLE user DROP fullName'
     ],
     downs: [

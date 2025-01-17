@@ -7,7 +7,7 @@ const sqlType = (jsonType, pattern, opts)=>{
         case 'string': return 'VARCHAR(255)';
         case 'number': return 'FLOAT(24)';
         //case 'object': return 'varchar(255)'; //currently unsupported
-        case 'integer': return 'INTEGER';
+        case 'integer': return 'BIGINT';
         //case 'array': return 'varchar(255)'; //currently unsupported
         case 'boolean': return 'BOOLEAN';
         default: throw new Error('Unknown type: '+jsonType);

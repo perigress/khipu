@@ -15,7 +15,7 @@ const sqlType = (jsonType, pattern, opts) => {
       return 'FLOAT(24)';
     //case 'object': return 'varchar(255)'; //currently unsupported
     case 'integer':
-      return 'INTEGER';
+      return 'BIGINT';
     //case 'array': return 'varchar(255)'; //currently unsupported
     case 'boolean':
       return 'BOOLEAN';
